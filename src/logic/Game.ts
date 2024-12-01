@@ -56,18 +56,29 @@ export class Game {
   private clickEvent(event: MouseEvent) {
     if (!this.running) return;
 
+    // Get click position & reset highlighted path
     const x = Math.floor(event.offsetX / tilesize);
     const y = Math.floor(event.offsetY / tilesize);
     const position = new Point(x, y);
-
     this.highlightedPath = null;
 
+    // If there's already a selected ball
     if (this.selectedBallIndex !== null) {
+      
+      // Remove selection
       if (this.balls[this.selectedBallIndex].position.compareTo(position)) {
         this.selectedBallIndex = null;
-      } else if (this.balls.find(e => e.position.compareTo(position))) {
+      } 
+      
+      // Change selection to a different ball
+      else if (this.balls.find(e => e.position.compareTo(position)) && this.canBeSelected(position)) {
         this.selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
-      } else {
+      } 
+     
+      // Pathfind & move
+      // Remove balls if conditions are met
+      // Spawn if didn't remove any
+      else {
         const from = this.balls[this.selectedBallIndex].position.clone();
         const to = position;
         const path = this.pathfind(from, to);
@@ -80,11 +91,23 @@ export class Game {
         this.highlightedPathColor = "rgb(200, 200, 200)";
         this.highlightedPath = path;
         this.selectedBallIndex = null;
-        debug.createBallsOnMove && this.createNewBalls();
+
+        const removedBallCount = this.checkBallCrossings();
+
+        if (removedBallCount !== 0) {
+          this.emit("onBallRemove", removedBallCount);
+        } else {
+          debug.createBallsOnMove && this.createNewBalls();
+        }
       }
-    } else {
+    } 
+    
+    // If there's no selected ball
+    else {
       const selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
-      if (selectedBallIndex >= 0) this.selectedBallIndex = selectedBallIndex;
+      if (selectedBallIndex === -1) return;
+      if (!this.canBeSelected(position)) return;
+      this.selectedBallIndex = selectedBallIndex;
     }
 
     this.render();
@@ -97,7 +120,7 @@ export class Game {
    */
   private hoverEvent(event: MouseEvent) {
     if (!this.running) return;
-    
+
     const x = Math.floor(event.offsetX / tilesize);
     const y = Math.floor(event.offsetY / tilesize);
     const position = new Point(x, y);
@@ -112,6 +135,77 @@ export class Game {
     this.highlightedPathColor = "rgb(242, 175, 170)";
     this.highlightedPath = path;
     this.render();
+  }
+
+  /**
+   * Helper method determining whether a ball at certain position can be selected
+   * (is not surrounded by something on all 4 sides)
+   * @param position position of item to check
+   * @returns true or false
+   */
+  private canBeSelected(position: Point) {
+    const neighbours = this.balls.filter(e => (
+      e.position.compareTo(new Point(position.x - 1, position.y)) ||
+      e.position.compareTo(new Point(position.x + 1, position.y)) ||
+      e.position.compareTo(new Point(position.x, position.y - 1)) ||
+      e.position.compareTo(new Point(position.x, position.y + 1))
+    ));
+
+    if (
+      neighbours.length === 4 ||
+      (neighbours.length === 3 && [0, gridWidth - 1].includes(position.x)) ||
+      (neighbours.length === 3 && [0, gridHeight - 1].includes(position.y)) ||
+      (neighbours.length === 2 && [0, gridWidth - 1].includes(position.x) && [0, gridHeight - 1].includes(position.y))
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Check whether 5 or more balls of the same color cross either horizontally, vertically, or diagonally.
+   * If the removal is succesfull, return total number of balls removed. Otherwise, return 0.
+   * @returns total number of balls removed, or 0.
+   */
+  private checkBallCrossings() {
+    const directions = [
+      { dx: 1, dy: 0 },
+      { dx: 0, dy: 1 },
+      { dx: 1, dy: 1 },
+      { dx: 1, dy: -1 }
+    ];
+
+    const toRemove = new Set<string>();
+
+    for (const ball of this.balls) {
+      for (const dir of directions) {
+        const sequence: Ball[] = [ball];
+        let nx = ball.position.x + dir.dx;
+        let ny = ball.position.y + dir.dy;
+
+        while (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight) {
+          const nextBall = this.balls.find(b => b.position.x === nx && b.position.y === ny && b.color === ball.color);
+          
+          if (nextBall) {
+            sequence.push(nextBall);
+          } else {
+            break;
+          }
+
+          nx += dir.dx;
+          ny += dir.dy;
+        }
+
+        if (sequence.length >= 5) {
+          sequence.forEach(b => toRemove.add(b.position.toString()));
+        }
+      }
+    }
+
+    this.balls = this.balls.filter(b => !toRemove.has(b.position.toString()));
+
+    return toRemove.size;
   }
 
   /**
@@ -138,33 +232,33 @@ export class Game {
 
     this.emit("onNewNextColors", this.nextColors);
   }
-  
+
   /**
    * Populates game grid with three new balls on each moves
    * @returns 
   */
- private createNewBalls() {
-   // Game over condition
-   if (this.balls.length + 3 >= gridWidth * gridHeight) {
-     this.running = false;
-     this.emit("onGameOver", undefined);
-     return;
+  private createNewBalls() {
+    // Game over condition
+    if (this.balls.length + 3 >= gridWidth * gridHeight) {
+      this.running = false;
+      this.emit("onGameOver", undefined);
+      return;
     }
-    
+
     for (let i = 0; i < 3; i++) {
       const x = Math.floor(Math.random() * gridWidth);
       const y = Math.floor(Math.random() * gridHeight);
       const position = new Point(x, y);
-      
+
       if (this.balls.some(e => e.position.compareTo(position))) {
         i--;
         continue;
       }
-      
+
       this.balls.push(new Ball(position, this.nextColors[i]));
       this.nextColors[i] = colors[Math.floor(Math.random() * colors.length)];
     }
-    
+
     this.emit("onNewNextColors", this.nextColors);
     debug.consoleLog && console.log(this.nextColors);
   }

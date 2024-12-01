@@ -8,15 +8,30 @@
   </head>
   <body>
     <div class="container">
+      
       <div class="info">
-        <p>Następne kulki:</p>
+
         <div class="next-balls">
+          <p>Następne kulki:</p>
           <div class="next-ball"></div>
           <div class="next-ball"></div>
           <div class="next-ball"></div>
         </div>
+
+        <div class="scores">
+          <p><span>Wynik:</span> <span id="score">0</span></p>
+          <p><span>Rekord:</span> <span id="highscore">0</span></p>
+        </div>
+        
+        <div class="game-over" id="game-over">
+          <p>Koniec gry</p>
+          <p onclick="window.location.reload()">Nowa gra</p>
+        </div>
+
       </div>
+
       <div id="grid"></div>
+
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
