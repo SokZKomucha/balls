@@ -1,25 +1,37 @@
 import { ballCount, ballRadius, debug, gridHeight, gridWidth, tilesize } from "../config";
 import { Color, colors } from "../types/Color";
 import { Ball } from "./Ball";
+import { EventEmitter } from "./EventEmitter";
 import { Point } from "./Point";
 import { Queue } from "./Queue";
 
+type EventMap = {
+  onGameOver: void,
+  onNewNextColors: Color[],
+  onBallRemove: number
+}
+
 /** Represents and implements a Game class */
 export class Game {
+  /** Game's ball list */
+  public balls: Ball[] = [];
   /** Game's internal `<canvas>` HTML element. */
   public canvas: HTMLCanvasElement;
   /** Game's canvas's 2D renderig context */
   private context: CanvasRenderingContext2D;
-  /** Game's ball list */
-  public balls: Ball[] = [];
-  /** Index in ball list of currently selected ball. `null` if no ball is selected */
-  private selectedBallIndex: number | null = null;
+  /** An event emitter */
+  private eventEmitter = new EventEmitter<EventMap>();
   /** List of points corresponding to currently higlighted path. `null` if no path is highlighted */
   private highlightedPath: Point[] | null = null;
   /** Color of highlighted paths */
   private highlightedPathColor: string = "rgb(242, 175, 170)";
   /** List with colors of balls that will get added with next move */
-  private nextColors: Color[] = [];
+  public readonly nextColors: Color[] = [];
+  /** Indicates whether game is running */
+  private running = true;
+  /** Index in ball list of currently selected ball. `null` if no ball is selected */
+  private selectedBallIndex: number | null = null;
+
 
   /**
    * Creates new instance of a Game class
@@ -31,7 +43,7 @@ export class Game {
     this.canvas.height = tilesize * gridHeight;
     this.canvas.addEventListener("click", (e) => this.clickEvent(e));
     this.canvas.addEventListener("mousemove", (e) => this.hoverEvent(e));
-    this.nextColors = [0, 1, 2].map(_ => colors[Math.floor(Math.random() * colors.length)]);
+    // this.nextColors = [0, 1, 2].map(_ => colors[Math.floor(Math.random() * colors.length)]); // moved to createInitialBalls
 
     debug.consoleLog && console.log(this.nextColors);
   }
@@ -42,6 +54,8 @@ export class Game {
    * @returns 
    */
   private clickEvent(event: MouseEvent) {
+    if (!this.running) return;
+
     const x = Math.floor(event.offsetX / tilesize);
     const y = Math.floor(event.offsetY / tilesize);
     const position = new Point(x, y);
@@ -82,6 +96,8 @@ export class Game {
    * @returns 
    */
   private hoverEvent(event: MouseEvent) {
+    if (!this.running) return;
+    
     const x = Math.floor(event.offsetX / tilesize);
     const y = Math.floor(event.offsetY / tilesize);
     const position = new Point(x, y);
@@ -113,34 +129,43 @@ export class Game {
       }
 
       const color = colors[Math.floor(Math.random() * colors.length)];
-      this.balls.push(new Ball(position, color))
+      this.balls.push(new Ball(position, color));
     }
-  }
 
+    for (let i = 0; i < 3; i++) {
+      this.nextColors[i] = colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    this.emit("onNewNextColors", this.nextColors);
+  }
+  
   /**
    * Populates game grid with three new balls on each moves
    * @returns 
-   */
-  private createNewBalls() {
-    // Game over condition
-    if (this.balls.length + 3 >= gridWidth * gridHeight) {
-      return;
+  */
+ private createNewBalls() {
+   // Game over condition
+   if (this.balls.length + 3 >= gridWidth * gridHeight) {
+     this.running = false;
+     this.emit("onGameOver", undefined);
+     return;
     }
-
+    
     for (let i = 0; i < 3; i++) {
       const x = Math.floor(Math.random() * gridWidth);
       const y = Math.floor(Math.random() * gridHeight);
       const position = new Point(x, y);
-
+      
       if (this.balls.some(e => e.position.compareTo(position))) {
         i--;
         continue;
       }
-
+      
       this.balls.push(new Ball(position, this.nextColors[i]));
       this.nextColors[i] = colors[Math.floor(Math.random() * colors.length)];
     }
-
+    
+    this.emit("onNewNextColors", this.nextColors);
     debug.consoleLog && console.log(this.nextColors);
   }
 
@@ -227,5 +252,27 @@ export class Game {
       this.context.stroke();
       this.context.closePath();
     });
+  }
+
+
+
+
+
+  /**
+   * Registers an event of name K
+   * @param eventType event to register
+   * @param eventCallback callback on emit
+   */
+  public on<K extends keyof EventMap>(eventType: K, eventCallback: (callback: EventMap[K]) => any) {
+    this.eventEmitter.on(eventType, eventCallback);
+  }
+
+  /**
+   * Executes all events with name K, emitting specified payload
+   * @param eventType event to emit
+   * @param payload payload to emit
+   */
+  private emit<K extends keyof EventMap>(eventType: K, payload: EventMap[K]) {
+    this.eventEmitter.emit(eventType, payload);
   }
 }

@@ -6,7 +6,7 @@ export const ballCount = 8;
 
 // Debug
 export const debug = {
-  createBallsOnMove: false,
+  createBallsOnMove: true,
   consoleLog: false,
   disableMoveCollisions: false,
   highlightPath: true
