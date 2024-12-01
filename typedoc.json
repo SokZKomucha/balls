@@ -1,0 +1,5 @@
+{
+  "name": "Gra - kulki",
+  "entryPoints": ["src"],
+  "entryPointStrategy": "expand"
+}
