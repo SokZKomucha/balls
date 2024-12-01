@@ -104,7 +104,7 @@ export class Game {
   public createInitialBalls() {
     for (let i = 0; i < ballCount; i++) {
       const x = Math.floor(Math.random() * gridWidth);
-      const y = Math.floor(Math.random() * gridWidth);
+      const y = Math.floor(Math.random() * gridHeight);
       const position = new Point(x, y);
 
       if (this.balls.some(e => e.position.compareTo(position))) {
@@ -129,7 +129,7 @@ export class Game {
 
     for (let i = 0; i < 3; i++) {
       const x = Math.floor(Math.random() * gridWidth);
-      const y = Math.floor(Math.random() * gridWidth);
+      const y = Math.floor(Math.random() * gridHeight);
       const position = new Point(x, y);
 
       if (this.balls.some(e => e.position.compareTo(position))) {
