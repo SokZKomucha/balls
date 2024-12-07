@@ -11,3 +11,13 @@ export const debug = {
   disableMoveCollisions: false,
   highlightPath: true
 };
+
+// Niezły wariant gry:
+// - Ilość kulek 80
+// - Wyłączone tworzenie nowych kulek
+// - Wyłączona kolizja
+// - Gracz musi jak najszybciej zbić wszystkie kulki
+
+// UWAGA - do zbicia potrzeba 5ciu takich samych kulek,
+// więc jak gracz przypadkowo nie zostawi sobie na później,
+// to ma problem

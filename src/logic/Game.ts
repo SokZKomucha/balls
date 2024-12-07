@@ -71,7 +71,7 @@ export class Game {
       } 
       
       // Change selection to a different ball
-      else if (this.balls.find(e => e.position.compareTo(position)) && this.canBeSelected(position)) {
+      else if (this.balls.find(e => e.position.compareTo(position)) && (debug.disableMoveCollisions || this.canBeSelected(position))) {
         this.selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
       } 
      
@@ -106,7 +106,7 @@ export class Game {
     else {
       const selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
       if (selectedBallIndex === -1) return;
-      if (!this.canBeSelected(position)) return;
+      if (!this.canBeSelected(position) && !debug.disableMoveCollisions) return;
       this.selectedBallIndex = selectedBallIndex;
     }
 
