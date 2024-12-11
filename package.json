@@ -4,15 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "webpack -c ./webpack.config.cjs"
   },
   "devDependencies": {
+    "ts-loader": "^9.5.1",
     "typedoc": "^0.26.11",
     "typescript": "~5.6.2",
-    "vite": "^5.4.9",
-    "webpack": "^5.96.1",
+    "webpack": "^5.97.1",
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
