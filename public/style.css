@@ -1,0 +1,66 @@
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  padding-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.container {
+  width: 490px;
+  height: 360px;
+  display: grid;
+  grid-template-columns: 120px 360px;
+  grid-template-rows: 360px;
+  gap: 10px;
+}
+
+.grid > canvas {
+  outline: 1px solid black;
+  cursor: pointer;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  align-items: center;
+}
+
+.next-balls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+}
+
+.next-ball {
+  width: 20px;
+  height: 20px;
+  border: 1px solid black;
+  border-radius: 50%;
+}
+
+.scores {
+  width: 100%;
+}
+
+.scores > p {
+  display: flex;
+  justify-content: space-between;
+}
+
+.game-over {
+  display: none; /* Initial display, changed to flex on game over */
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.game-over > :last-child {
+  text-decoration: underline;
+  cursor: pointer;
+}
