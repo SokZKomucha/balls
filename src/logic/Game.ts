@@ -315,7 +315,7 @@ export class Game {
   /**
    * Clears current canvas content and re-renders the game.
    */
-  public async render() {
+  public render() {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     if (debug.highlightPath && this.highlightedPath) {
