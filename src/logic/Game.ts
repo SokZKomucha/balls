@@ -1,4 +1,4 @@
-import { ballCount, ballRadius, debug, gridHeight, gridWidth, tilesize } from "../config";
+import { ballCount, ballRadius, options, gridHeight, gridWidth, tilesize } from "../config";
 import { Color, colors } from "../types/Color";
 import { Ball } from "./Ball";
 import { EventEmitter } from "./EventEmitter";
@@ -45,7 +45,7 @@ export class Game {
     this.canvas.addEventListener("mousemove", (e) => this.hoverEvent(e));
     // this.nextColors = [0, 1, 2].map(_ => colors[Math.floor(Math.random() * colors.length)]); // moved to createInitialBalls
 
-    debug.consoleLog && console.log(this.nextColors);
+    options.consoleLog && console.log(this.nextColors);
   }
 
   /**
@@ -71,7 +71,7 @@ export class Game {
       } 
       
       // Change selection to a different ball
-      else if (this.balls.find(e => e.position.compareTo(position)) && (debug.disableMoveCollisions || this.canBeSelected(position))) {
+      else if (this.balls.find(e => e.position.compareTo(position)) && (options.disableMoveCollisions || this.canBeSelected(position))) {
         this.selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
       } 
      
@@ -83,7 +83,7 @@ export class Game {
         const to = position;
         const path = this.pathfind(from, to);
 
-        if (path.length === 0 && !debug.disableMoveCollisions) {
+        if (path.length === 0 && !options.disableMoveCollisions) {
           return;
         }
 
@@ -97,7 +97,7 @@ export class Game {
         if (removedBallCount !== 0) {
           this.emit("onBallRemove", removedBallCount);
         } else {
-          debug.createBallsOnMove && this.createNewBalls();
+          options.createBallsOnMove && this.createNewBalls();
         }
       }
     } 
@@ -106,7 +106,7 @@ export class Game {
     else {
       const selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
       if (selectedBallIndex === -1) return;
-      if (!this.canBeSelected(position) && !debug.disableMoveCollisions) return;
+      if (!this.canBeSelected(position) && !options.disableMoveCollisions) return;
       this.selectedBallIndex = selectedBallIndex;
     }
 
@@ -260,7 +260,7 @@ export class Game {
     }
 
     this.emit("onNewNextColors", this.nextColors);
-    debug.consoleLog && console.log(this.nextColors);
+    options.consoleLog && console.log(this.nextColors);
   }
 
   /**
@@ -318,7 +318,7 @@ export class Game {
   public render() {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (debug.highlightPath && this.highlightedPath) {
+    if (options.highlightPath && this.highlightedPath) {
       this.highlightedPath.forEach(tile => {
         this.context.fillStyle = this.highlightedPathColor;
         this.context.fillRect(
