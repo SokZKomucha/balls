@@ -11,4 +11,6 @@ There's no set objective, players can configure their gameplay to their liking, 
 
 <br>
 
+To build, use `npm run build` in root directory. Output files will be located in `/public`.
+
 *English localization coming soon*
