@@ -21,6 +21,8 @@ export class Game {
   private context: CanvasRenderingContext2D;
   /** An event emitter */
   private eventEmitter = new EventEmitter<EventMap>();
+  /** Determines whether to spawn balls after a move */
+  private createBallsAfterMove = true;
   /** List of points corresponding to currently higlighted path. `null` if no path is highlighted */
   private highlightedPath: Point[] | null = null;
   /** Color of highlighted paths */
@@ -31,7 +33,6 @@ export class Game {
   private running = true;
   /** Index in ball list of currently selected ball. `null` if no ball is selected */
   private selectedBallIndex: number | null = null;
-
 
   /**
    * Creates new instance of a Game class
@@ -60,6 +61,14 @@ export class Game {
     const x = Math.floor(event.offsetX / tilesize);
     const y = Math.floor(event.offsetY / tilesize);
     const position = new Point(x, y);
+
+    if (this.highlightedPath && this.highlightedPathColor === "rgb(200, 200, 200)") {
+      this.highlightedPath = null;
+      this.createBallsAfterMove && this.createNewBalls();
+      this.render();
+      return;
+    }
+
     this.highlightedPath = null;
 
     // If there's already a selected ball
@@ -95,9 +104,10 @@ export class Game {
         const removedBallCount = this.checkBallCrossings();
 
         if (removedBallCount !== 0) {
+          this.createBallsAfterMove = false;
           this.emit("onBallRemove", removedBallCount);
         } else {
-          options.createBallsOnMove && this.createNewBalls();
+          this.createBallsAfterMove = true;
         }
       }
     } 
