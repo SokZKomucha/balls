@@ -60,6 +60,15 @@ export class Game {
     const x = Math.floor(event.offsetX / tilesize);
     const y = Math.floor(event.offsetY / tilesize);
     const position = new Point(x, y);
+    
+    // If waitAfterMove is set to true, after moving a ball
+    // user needs to click somewhere before being able to select again
+    if (options.waitAfterMove && this.highlightedPath && this.highlightedPathColor === "rgb(200, 200, 200)") {
+      this.highlightedPath = null;
+      this.render();
+      return;
+    }
+
     this.highlightedPath = null;
 
     // If there's already a selected ball
