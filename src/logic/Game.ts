@@ -1,26 +1,30 @@
-import { ballCount, ballRadius, options, gridHeight, gridWidth, tilesize } from "../config";
+import { ballCount, ballRadius, gridHeight, gridWidth, options, tilesize } from "../config";
 import { Color, colors } from "../types/Color";
 import { Ball } from "./Ball";
 import { EventEmitter } from "./EventEmitter";
 import { Point } from "./Point";
 import { Queue } from "./Queue";
 
-type EventMap = {
-  onGameOver: void,
-  onNewNextColors: Color[],
+interface EventMap {
+  onGameOver: void
+  onNewNextColors: Color[]
   onBallRemove: number
 }
 
 /** Represents and implements a Game class */
 export class Game {
-  /** Game's ball list */
-  public balls: Ball[] = [];
+  
   /** Game's internal `<canvas>` HTML element. */
-  public canvas: HTMLCanvasElement;
+  public readonly canvas: HTMLCanvasElement;
   /** Game's canvas's 2D renderig context */
   private context: CanvasRenderingContext2D;
   /** An event emitter */
   private eventEmitter = new EventEmitter<EventMap>();
+  /** Indicates whether game is running */
+  private running = true;
+  
+  /** Game's ball list */
+  private balls: Ball[] = [];
   /** Determines whether to spawn balls after a move */
   private createBallsAfterMove = true;
   /** List of points corresponding to currently higlighted path. `null` if no path is highlighted */
@@ -29,8 +33,6 @@ export class Game {
   private highlightedPathColor: string = "rgb(242, 175, 170)";
   /** List with colors of balls that will get added with next move */
   public readonly nextColors: Color[] = [];
-  /** Indicates whether game is running */
-  private running = true;
   /** Index in ball list of currently selected ball. `null` if no ball is selected */
   private selectedBallIndex: number | null = null;
 
@@ -44,8 +46,6 @@ export class Game {
     this.canvas.height = tilesize * gridHeight;
     this.canvas.addEventListener("click", (e) => this.clickEvent(e));
     this.canvas.addEventListener("mousemove", (e) => this.hoverEvent(e));
-    // this.nextColors = [0, 1, 2].map(_ => colors[Math.floor(Math.random() * colors.length)]); // moved to createInitialBalls
-
     options.consoleLog && console.log(this.nextColors);
   }
 
@@ -73,17 +73,17 @@ export class Game {
 
     // If there's already a selected ball
     if (this.selectedBallIndex !== null) {
-      
+
       // Remove selection
       if (this.balls[this.selectedBallIndex].position.compareTo(position)) {
         this.selectedBallIndex = null;
-      } 
-      
+      }
+
       // Change selection to a different ball
       else if (this.balls.find(e => e.position.compareTo(position)) && (options.disableMoveCollisions || this.canBeSelected(position))) {
         this.selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
-      } 
-     
+      }
+
       // Pathfind & move
       // Remove balls if conditions are met
       // Spawn if didn't remove any
@@ -110,8 +110,8 @@ export class Game {
           this.createBallsAfterMove = true;
         }
       }
-    } 
-    
+    }
+
     // If there's no selected ball
     else {
       const selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
@@ -196,7 +196,7 @@ export class Game {
 
         while (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight) {
           const nextBall = this.balls.find(b => b.position.x === nx && b.position.y === ny && b.color === ball.color);
-          
+
           if (nextBall) {
             sequence.push(nextBall);
           } else {
