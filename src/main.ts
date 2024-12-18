@@ -36,7 +36,3 @@ game.on("onBallRemove", (count) => {
 
 game.createInitialBalls();
 game.render();
-game.canvas.style.outline = "1px solid black";
-game.canvas.style.cursor = "pointer";
-
-

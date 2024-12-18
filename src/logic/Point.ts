@@ -2,15 +2,13 @@ import { ICloneable } from "../types/ICloneable";
 import { IComparable } from "../types/IComparable";
 import { IPoint } from "../types/IPoint";
 
-/**
- * Represents and implements a point on rectangular grid
- */
+/** Represents and implements a point on rectangular grid */
 export class Point implements IPoint, IComparable<Point>, ICloneable<Point> {
   public x: number
   public y: number
 
   /**
-   * Creates new instance of a Point class
+   * Creates new instance of Point class
    * @param x Point's x coordinate
    * @param y Point's y coordinate
    */

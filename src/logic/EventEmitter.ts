@@ -1,8 +1,6 @@
 type EventCallback<T extends any> = (callback: T) => any;
 
-/**
- * Event emitter class, with support for typed events
- */
+/** Event emitter class, with support for typed events */
 export class EventEmitter<EventMap extends Record<string, any>> {
   private eventListeners: { [K in keyof EventMap]?: Set<EventCallback<EventMap[K]>> } = {};
 

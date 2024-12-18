@@ -1,9 +1,8 @@
-import { ballCount, ballRadius, gridHeight, gridWidth, options, tilesize } from "../config";
+import { config } from "../config";
 import { Color, colors } from "../types/Color";
 import { Ball } from "./Ball";
 import { EventEmitter } from "./EventEmitter";
 import { Point } from "./Point";
-import { Queue } from "./Queue";
 
 interface EventMap {
   onGameOver: void
@@ -13,7 +12,7 @@ interface EventMap {
 
 /** Represents and implements a Game class */
 export class Game {
-  
+
   /** Game's internal `<canvas>` HTML element. */
   public readonly canvas: HTMLCanvasElement;
   /** Game's canvas's 2D renderig context */
@@ -22,11 +21,11 @@ export class Game {
   private eventEmitter = new EventEmitter<EventMap>();
   /** Indicates whether game is running */
   private running = true;
-  
+
   /** Game's ball list */
   private balls: Ball[] = [];
-  /** Determines whether to spawn balls after a move */
-  private createBallsAfterMove = true;
+  /** Determines whether game can be interacted with, eg. can a ball be moved */
+  private canBeInteractedWith = true;
   /** List of points corresponding to currently higlighted path. `null` if no path is highlighted */
   private highlightedPath: Point[] | null = null;
   /** Color of highlighted paths */
@@ -37,16 +36,15 @@ export class Game {
   private selectedBallIndex: number | null = null;
 
   /**
-   * Creates new instance of a Game class
+   * Creates new instance of Game class
    */
   public constructor() {
     this.canvas = document.createElement("canvas");
     this.context = this.canvas.getContext("2d")!;
-    this.canvas.width = tilesize * gridWidth;
-    this.canvas.height = tilesize * gridHeight;
+    this.canvas.width = config.tilesize * config.gridWidth;
+    this.canvas.height = config.tilesize * config.gridHeight;
     this.canvas.addEventListener("click", (e) => this.clickEvent(e));
     this.canvas.addEventListener("mousemove", (e) => this.hoverEvent(e));
-    options.consoleLog && console.log(this.nextColors);
   }
 
   /**
@@ -55,72 +53,70 @@ export class Game {
    * @returns 
    */
   private clickEvent(event: MouseEvent) {
+    if (!this.canBeInteractedWith) return;
     if (!this.running) return;
 
-    // Get click position & reset highlighted path
-    const x = Math.floor(event.offsetX / tilesize);
-    const y = Math.floor(event.offsetY / tilesize);
+    // Get click position & reset highlighted path (if any)
+    const x = Math.floor(event.offsetX / config.tilesize);
+    const y = Math.floor(event.offsetY / config.tilesize);
     const position = new Point(x, y);
+    this.highlightedPath = null;
 
-    if (this.highlightedPath && this.highlightedPathColor === "rgb(200, 200, 200)") {
-      this.highlightedPath = null;
-      this.createBallsAfterMove && this.createNewBalls();
+    // If no ball is selected
+    if (this.selectedBallIndex === null) {
+      const selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
+      if (selectedBallIndex === -1) return;
+      if (!this.canBeSelected(position)) return;
+      this.selectedBallIndex = selectedBallIndex;
       this.render();
       return;
     }
 
-    this.highlightedPath = null;
-
-    // If there's already a selected ball
-    if (this.selectedBallIndex !== null) {
-
-      // Remove selection
-      if (this.balls[this.selectedBallIndex].position.compareTo(position)) {
-        this.selectedBallIndex = null;
-      }
-
-      // Change selection to a different ball
-      else if (this.balls.find(e => e.position.compareTo(position)) && (options.disableMoveCollisions || this.canBeSelected(position))) {
-        this.selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
-      }
-
-      // Pathfind & move
-      // Remove balls if conditions are met
-      // Spawn if didn't remove any
-      else {
-        const from = this.balls[this.selectedBallIndex].position.clone();
-        const to = position;
-        const path = this.pathfind(from, to);
-
-        if (path.length === 0 && !options.disableMoveCollisions) {
-          return;
-        }
-
-        this.balls[this.selectedBallIndex].moveTo(position);
-        this.highlightedPathColor = "rgb(200, 200, 200)";
-        this.highlightedPath = path;
-        this.selectedBallIndex = null;
-
-        const removedBallCount = this.checkBallCrossings();
-
-        if (removedBallCount !== 0) {
-          this.createBallsAfterMove = false;
-          this.emit("onBallRemove", removedBallCount);
-        } else {
-          this.createBallsAfterMove = true;
-        }
-      }
+    // If the same ball is selected
+    if (this.balls[this.selectedBallIndex].position.compareTo(position)) {
+      this.selectedBallIndex = null;
+      this.render();
+      return;
     }
 
-    // If there's no selected ball
-    else {
-      const selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
-      if (selectedBallIndex === -1) return;
-      if (!this.canBeSelected(position) && !options.disableMoveCollisions) return;
-      this.selectedBallIndex = selectedBallIndex;
+    // If other ball is selected
+    if (this.balls.find(e => e.position.compareTo(position)) && this.canBeSelected(position)) {
+      this.selectedBallIndex = this.balls.findIndex(e => e.position.compareTo(position));
+      this.render();
+      return;
     }
 
+
+    // Proceed to ball move
+    // After move, disable interaction for 
+    // interactionTimeout milliseconds, then render
+
+    const from = this.balls[this.selectedBallIndex].position.clone();
+    const path = this.pathfind(from, position);
+
+    if (path.length === 0) return;
+
+    this.balls[this.selectedBallIndex].moveTo(position);
+    this.highlightedPathColor = "rgb(200, 200, 200)";
+    this.highlightedPath = path;
+    this.canBeInteractedWith = false;
+    this.selectedBallIndex = null;
     this.render();
+
+    const removedBallCount = this.checkBallCrossings();
+
+    setTimeout(() => {
+      this.canBeInteractedWith = true;
+      this.highlightedPath = null;
+      removedBallCount === 0 && this.createNewBalls();
+      removedBallCount !== 0 && this.emit("onBallRemove", removedBallCount);
+
+      const secondRemove = this.checkBallCrossings();
+      secondRemove !== 0 && this.emit("onBallRemove", secondRemove);
+
+      this.render();
+    }, config.interactionTimeout);
+
   }
 
   /**
@@ -129,32 +125,30 @@ export class Game {
    * @returns 
    */
   private hoverEvent(event: MouseEvent) {
+    if (this.selectedBallIndex == null) return;
+    if (!this.canBeInteractedWith) return;
     if (!this.running) return;
 
-    const x = Math.floor(event.offsetX / tilesize);
-    const y = Math.floor(event.offsetY / tilesize);
-    const position = new Point(x, y);
-
-    if (this.selectedBallIndex == null) {
-      return;
-    }
-
+    const x = Math.floor(event.offsetX / config.tilesize);
+    const y = Math.floor(event.offsetY / config.tilesize);
     const from = this.balls[this.selectedBallIndex].position.clone();
-    const path = this.pathfind(from, position);
+    const path = this.pathfind(from, new Point(x, y));
+
+    console.log(path)
 
     this.highlightedPathColor = "rgb(242, 175, 170)";
-    this.highlightedPath = path;
+    this.highlightedPath = new Point(x, y).compareTo(from) ? path.filter(e => !e.compareTo(from)) : path;
     this.render();
   }
 
   /**
-   * Helper method determining whether a ball at certain position can be selected
-   * (is not surrounded by something on all 4 sides)
-   * @param position position of item to check
+   * Helper method to determine whether a ball at certain position may be selected
+   * eg. is not surrounded by something on all 4 sides
+   * @param position position of ball to check
    * @returns true or false
    */
   private canBeSelected(position: Point) {
-    const neighbours = this.balls.filter(e => (
+    const neighbors = this.balls.filter(e => (
       e.position.compareTo(new Point(position.x - 1, position.y)) ||
       e.position.compareTo(new Point(position.x + 1, position.y)) ||
       e.position.compareTo(new Point(position.x, position.y - 1)) ||
@@ -162,21 +156,19 @@ export class Game {
     ));
 
     if (
-      neighbours.length === 4 ||
-      (neighbours.length === 3 && [0, gridWidth - 1].includes(position.x)) ||
-      (neighbours.length === 3 && [0, gridHeight - 1].includes(position.y)) ||
-      (neighbours.length === 2 && [0, gridWidth - 1].includes(position.x) && [0, gridHeight - 1].includes(position.y))
-    ) {
-      return false;
-    }
+      neighbors.length === 4 ||
+      (neighbors.length === 3 && [0, config.gridWidth - 1].includes(position.x)) ||
+      (neighbors.length === 3 && [0, config.gridHeight - 1].includes(position.y)) ||
+      (neighbors.length === 2 && [0, config.gridWidth - 1].includes(position.x) && [0, config.gridHeight - 1].includes(position.y))
+    ) return false;
 
     return true;
   }
 
   /**
    * Check whether 5 or more balls of the same color cross either horizontally, vertically, or diagonally.
-   * If the removal is succesfull, return total number of balls removed. Otherwise, return 0.
-   * @returns total number of balls removed, or 0.
+   * If the removal is succesfull, return the total number of balls removed. Otherwise, return 0.
+   * @returns total number of balls removed.
    */
   private checkBallCrossings() {
     const directions = [
@@ -194,14 +186,11 @@ export class Game {
         let nx = ball.position.x + dir.dx;
         let ny = ball.position.y + dir.dy;
 
-        while (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight) {
+        while (nx >= 0 && nx < config.gridWidth && ny >= 0 && ny < config.gridHeight) {
           const nextBall = this.balls.find(b => b.position.x === nx && b.position.y === ny && b.color === ball.color);
 
-          if (nextBall) {
-            sequence.push(nextBall);
-          } else {
-            break;
-          }
+          if (nextBall) sequence.push(nextBall);
+          else break;
 
           nx += dir.dx;
           ny += dir.dy;
@@ -219,12 +208,12 @@ export class Game {
   }
 
   /**
-   * Populates game grid with balls on game start
+   * Populates the game grid with balls on game start
    */
   public createInitialBalls() {
-    for (let i = 0; i < ballCount; i++) {
-      const x = Math.floor(Math.random() * gridWidth);
-      const y = Math.floor(Math.random() * gridHeight);
+    for (let i = 0; i < config.initialBallCount; i++) {
+      const x = Math.floor(Math.random() * config.gridWidth);
+      const y = Math.floor(Math.random() * config.gridHeight);
       const position = new Point(x, y);
 
       if (this.balls.some(e => e.position.compareTo(position))) {
@@ -244,20 +233,20 @@ export class Game {
   }
 
   /**
-   * Populates game grid with three new balls on each moves
+   * Populates the game grid with new balls after move
    * @returns 
   */
   private createNewBalls() {
     // Game over condition
-    if (this.balls.length + 3 >= gridWidth * gridHeight) {
+    if (this.balls.length + 3 >= config.gridWidth * config.gridHeight) {
       this.running = false;
       this.emit("onGameOver", undefined);
       return;
     }
 
     for (let i = 0; i < 3; i++) {
-      const x = Math.floor(Math.random() * gridWidth);
-      const y = Math.floor(Math.random() * gridHeight);
+      const x = Math.floor(Math.random() * config.gridWidth);
+      const y = Math.floor(Math.random() * config.gridHeight);
       const position = new Point(x, y);
 
       if (this.balls.some(e => e.position.compareTo(position))) {
@@ -270,26 +259,25 @@ export class Game {
     }
 
     this.emit("onNewNextColors", this.nextColors);
-    options.consoleLog && console.log(this.nextColors);
   }
 
   /**
    * Finds a path from one point to another on game's grid.
-   * @param from point to start pathfinding from
+   * @param from start point
    * @param to target point
    * @returns list of points representing found path, empty list if path is not found.
    */
   private pathfind(from: Point, to: Point) {
-    const queue = new Queue<Point>();
+    const queue: Point[] = [];
     const visited = new Set<string>();
     const cameFrom: Map<string, Point | null> = new Map();
 
-    queue.enqueue(from);
+    queue.push(from);
     visited.add(from.toString());
     cameFrom.set(from.toString(), null);
 
-    while (queue.Size > 0) {
-      const current = queue.dequeue()!;
+    while (queue.length > 0) {
+      const current = queue.shift()!;
 
       if (current.compareTo(to)) {
         const path = [];
@@ -308,11 +296,11 @@ export class Game {
         const key = neighbor.toString();
 
         if (!visited.has(key) &&
-          neighbor.x >= 0 && neighbor.x < gridWidth &&
-          neighbor.y >= 0 && neighbor.y < gridHeight &&
+          neighbor.x >= 0 && neighbor.x < config.gridWidth &&
+          neighbor.y >= 0 && neighbor.y < config.gridHeight &&
           !this.balls.some(b => b.position.compareTo(neighbor))
         ) {
-          queue.enqueue(neighbor);
+          queue.push(neighbor);
           visited.add(key);
           cameFrom.set(key, current);
         }
@@ -328,14 +316,14 @@ export class Game {
   public render() {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (options.highlightPath && this.highlightedPath) {
+    if (this.highlightedPath) {
       this.highlightedPath.forEach(tile => {
         this.context.fillStyle = this.highlightedPathColor;
         this.context.fillRect(
-          tile.x * tilesize,
-          tile.y * tilesize,
-          tilesize,
-          tilesize
+          tile.x * config.tilesize,
+          tile.y * config.tilesize,
+          config.tilesize,
+          config.tilesize
         );
       });
     }
@@ -345,9 +333,9 @@ export class Game {
       this.context.beginPath();
 
       this.context.arc(
-        ball.position.x * tilesize + tilesize / 2,
-        ball.position.y * tilesize + tilesize / 2,
-        this.selectedBallIndex !== null && this.balls[this.selectedBallIndex].position.compareTo(ball.position) ? ballRadius + 2.5 : ballRadius,
+        ball.position.x * config.tilesize + config.tilesize / 2,
+        ball.position.y * config.tilesize + config.tilesize / 2,
+        this.selectedBallIndex !== null && this.balls[this.selectedBallIndex].position.compareTo(ball.position) ? config.ballRadius + 2.5 : config.ballRadius,
         0,
         2 * Math.PI
       );
@@ -363,7 +351,7 @@ export class Game {
 
 
   /**
-   * Registers an event of name K
+   * Registers an event of name K. Multiple ev
    * @param eventType event to register
    * @param eventCallback callback on emit
    */
