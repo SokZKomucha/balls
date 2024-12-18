@@ -19,7 +19,7 @@ body {
   gap: 10px;
 }
 
-.grid > canvas {
+#grid > canvas {
   outline: 1px solid black;
   cursor: pointer;
 }

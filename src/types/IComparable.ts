@@ -1,6 +1,4 @@
-/** 
- * Represents a class implementing method `compareTo`, whose's objects may be compared to eachother
- */
+/** Represents a class implementing method `compareTo`, whose's objects may be compared to eachother */
 export interface IComparable<T> {
   /**
    * Method used to compare different objects of identical types, by some condition predefined and implemented in class
