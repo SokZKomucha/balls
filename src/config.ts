@@ -1,5 +1,5 @@
 interface IConfig {
-  tilesize: number;
+  tileSize: number;
   gridWidth: number;
   gridHeight: number;
   ballRadius: number;
@@ -8,8 +8,8 @@ interface IConfig {
   createBallsOnMove: boolean;
 }
 
-export const config = {
-  tilesize: 40,
+export const config: IConfig = {
+  tileSize: 40,
   gridWidth: 9,
   gridHeight: 9,
   ballRadius: 10,
