@@ -5,7 +5,7 @@ Fun little browser game, written in vanilla Typescript. Given 9x9 grid, players 
 There's no set objective. Players may configure the game to their liking. Below is the list of all configurable options:
 
 | Option                | Description                                                                   |
-|:----------------------|-------------------------------------------------------------------------------|
+|-----------------------|-------------------------------------------------------------------------------|
 | `tileSize`            | Side length of singular tile, in px                                           |
 | `gridWidth`           | Width of game area                                                            |
 | `gridHeight`          | Height of game area                                                           |
