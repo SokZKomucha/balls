@@ -41,8 +41,8 @@ export class Game {
   public constructor() {
     this.canvas = document.createElement("canvas");
     this.context = this.canvas.getContext("2d")!;
-    this.canvas.width = config.tilesize * config.gridWidth;
-    this.canvas.height = config.tilesize * config.gridHeight;
+    this.canvas.width = config.tileSize * config.gridWidth;
+    this.canvas.height = config.tileSize * config.gridHeight;
     this.canvas.addEventListener("click", (e) => this.clickEvent(e));
     this.canvas.addEventListener("mousemove", (e) => this.hoverEvent(e));
   }
@@ -57,8 +57,8 @@ export class Game {
     if (!this.running) return;
 
     // Get click position & reset highlighted path (if any)
-    const x = Math.floor(event.offsetX / config.tilesize);
-    const y = Math.floor(event.offsetY / config.tilesize);
+    const x = Math.floor(event.offsetX / config.tileSize);
+    const y = Math.floor(event.offsetY / config.tileSize);
     const position = new Point(x, y);
     this.highlightedPath = null;
 
@@ -104,7 +104,8 @@ export class Game {
     this.render();
 
     const removedBallCount = this.checkBallCrossings();
-
+    // Render only after the timeout
+    
     setTimeout(() => {
       this.canBeInteractedWith = true;
       this.highlightedPath = null;
@@ -129,12 +130,10 @@ export class Game {
     if (!this.canBeInteractedWith) return;
     if (!this.running) return;
 
-    const x = Math.floor(event.offsetX / config.tilesize);
-    const y = Math.floor(event.offsetY / config.tilesize);
+    const x = Math.floor(event.offsetX / config.tileSize);
+    const y = Math.floor(event.offsetY / config.tileSize);
     const from = this.balls[this.selectedBallIndex].position.clone();
     const path = this.pathfind(from, new Point(x, y));
-
-    console.log(path)
 
     this.highlightedPathColor = "rgb(242, 175, 170)";
     this.highlightedPath = new Point(x, y).compareTo(from) ? path.filter(e => !e.compareTo(from)) : path;
@@ -320,10 +319,10 @@ export class Game {
       this.highlightedPath.forEach(tile => {
         this.context.fillStyle = this.highlightedPathColor;
         this.context.fillRect(
-          tile.x * config.tilesize,
-          tile.y * config.tilesize,
-          config.tilesize,
-          config.tilesize
+          tile.x * config.tileSize,
+          tile.y * config.tileSize,
+          config.tileSize,
+          config.tileSize
         );
       });
     }
@@ -333,8 +332,8 @@ export class Game {
       this.context.beginPath();
 
       this.context.arc(
-        ball.position.x * config.tilesize + config.tilesize / 2,
-        ball.position.y * config.tilesize + config.tilesize / 2,
+        ball.position.x * config.tileSize + config.tileSize / 2,
+        ball.position.y * config.tileSize + config.tileSize / 2,
         this.selectedBallIndex !== null && this.balls[this.selectedBallIndex].position.compareTo(ball.position) ? config.ballRadius + 2.5 : config.ballRadius,
         0,
         2 * Math.PI
